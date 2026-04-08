@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  spots     Spot[]
+  reviews   Review[]
+  likes     Like[]
+  favorites Favorite[]
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Spot {
+  id           Int      @id @default(autoincrement())
+  name         String
+  category     Category
+  prefecture   String
+  description  String
+  image        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  reviews   Review[]
+  favorites Favorite[]
+}
+
+enum Category {
+  RESTAURANT
+  TOURISM
+  HOTEL
+  PRODUCT
+  OTHER
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  rating    Int
+  comment   String
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId  Int
+  user    User   @relation(fields: [userId], references: [id])
+  spotId  Int
+  spot    Spot   @relation(fields: [spotId], references: [id])
+  likes   Like[]
+}
+
+model Like {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  userId   Int
+  user     User   @relation(fields: [userId], references: [id])
+  reviewId Int
+  review   Review @relation(fields: [reviewId], references: [id])
+
+  @@unique([userId, reviewId])
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  userId  Int
+  user    User @relation(fields: [userId], references: [id])
+  spotId  Int
+  spot    Spot @relation(fields: [spotId], references: [id])
+
+  @@unique([userId, spotId])
+}
