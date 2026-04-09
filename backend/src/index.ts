@@ -2,6 +2,8 @@ import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import authRouter from './routes/auth'
+import spotsRouter from './routes/spots'
+import reviewsRouter from './routes/reviews'
 
 dotenv.config()
 
@@ -13,6 +15,8 @@ app.use(express.json())
 
 // ルーティング
 app.use('/api/auth', authRouter)
+app.use('/api/spots', spotsRouter)
+app.use('/api/reviews', reviewsRouter)
 
 app.get('/', (req, res) => {
   res.json({ message: 'Reviewly API is running!' })
