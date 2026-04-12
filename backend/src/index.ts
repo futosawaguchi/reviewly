@@ -5,6 +5,7 @@ import authRouter from './routes/auth'
 import spotsRouter from './routes/spots'
 import reviewsRouter from './routes/reviews'
 import favoritesRouter from './routes/favorites'
+import adminRouter from './routes/admin'
 
 dotenv.config()
 
@@ -19,6 +20,7 @@ app.use('/api/auth', authRouter)
 app.use('/api/spots', spotsRouter)
 app.use('/api/reviews', reviewsRouter)
 app.use('/api/favorites', favoritesRouter)
+app.use('/api/admin', adminRouter)
 
 app.get('/', (req, res) => {
   res.json({ message: 'Reviewly API is running!' })
