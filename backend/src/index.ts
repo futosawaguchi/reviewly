@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
+import path from 'path'
 import authRouter from './routes/auth'
 import spotsRouter from './routes/spots'
 import reviewsRouter from './routes/reviews'
@@ -14,6 +15,9 @@ const PORT = process.env.PORT || 3001
 
 app.use(cors())
 app.use(express.json())
+
+// uploadsフォルダを静的ファイルとして公開
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
 
 // ルーティング
 app.use('/api/auth', authRouter)

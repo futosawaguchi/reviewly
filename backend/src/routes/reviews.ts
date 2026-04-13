@@ -1,62 +1,70 @@
 import { Router, Response } from 'express'
 import prisma from '../prisma'
 import { authenticate, AuthRequest } from '../middleware/auth'
+import upload from '../upload'
 
 const router = Router()
 
-// レビュー作成（要認証）
-router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    const { spotId, rating, comment } = req.body
+// レビュー作成（要認証・画像対応）
+router.post(
+  '/',
+  authenticate,
+  upload.single('image'),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { spotId, rating, comment } = req.body
 
-    if (!spotId || !rating || !comment) {
-      res.status(400).json({ message: '全ての項目を入力してください' })
-      return
-    }
-
-    if (rating < 1 || rating > 5) {
-      res.status(400).json({ message: '評価は1〜5で入力してください' })
-      return
-    }
-
-    // スポットの存在確認
-    const spot = await prisma.spot.findUnique({
-      where: { id: parseInt(spotId) }
-    })
-    if (!spot) {
-      res.status(404).json({ message: 'スポットが見つかりませんでした' })
-      return
-    }
-
-    // 同じユーザーが同じスポットに2回レビューしていないか確認
-    const existingReview = await prisma.review.findFirst({
-      where: {
-        spotId: parseInt(spotId),
-        userId: req.user!.userId,
+      if (!spotId || !rating || !comment) {
+        res.status(400).json({ message: '全ての項目を入力してください' })
+        return
       }
-    })
-    if (existingReview) {
-      res.status(400).json({ message: 'このスポットにはすでにレビューを投稿しています' })
-      return
-    }
 
-    const review = await prisma.review.create({
-      data: {
-        spotId: parseInt(spotId),
-        rating: parseInt(rating),
-        comment,
-        userId: req.user!.userId,
-      },
-      include: {
-        user: { select: { id: true, name: true } },
+      if (rating < 1 || rating > 5) {
+        res.status(400).json({ message: '評価は1〜5で入力してください' })
+        return
       }
-    })
 
-    res.status(201).json({ message: 'レビューを投稿しました', review })
-  } catch (error) {
-    res.status(500).json({ message: 'サーバーエラーが発生しました' })
+      const spot = await prisma.spot.findUnique({
+        where: { id: parseInt(spotId) }
+      })
+      if (!spot) {
+        res.status(404).json({ message: 'スポットが見つかりませんでした' })
+        return
+      }
+
+      const existingReview = await prisma.review.findFirst({
+        where: {
+          spotId: parseInt(spotId),
+          userId: req.user!.userId,
+        }
+      })
+      if (existingReview) {
+        res.status(400).json({ message: 'このスポットにはすでにレビューを投稿しています' })
+        return
+      }
+
+      // 画像のパスを取得（画像がない場合はnull）
+      const image = req.file ? `/uploads/${req.file.filename}` : null
+
+      const review = await prisma.review.create({
+        data: {
+          spotId: parseInt(spotId),
+          rating: parseInt(rating),
+          comment,
+          image,
+          userId: req.user!.userId,
+        },
+        include: {
+          user: { select: { id: true, name: true } },
+        }
+      })
+
+      res.status(201).json({ message: 'レビューを投稿しました', review })
+    } catch (error) {
+      res.status(500).json({ message: 'サーバーエラーが発生しました' })
+    }
   }
-})
+)
 
 // レビュー更新（要認証・本人のみ）
 router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {

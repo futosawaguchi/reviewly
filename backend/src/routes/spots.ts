@@ -2,6 +2,7 @@ import { Router, Response } from 'express'
 import { Category } from '@prisma/client'
 import prisma from '../prisma'
 import { authenticate, AuthRequest } from '../middleware/auth'
+import upload from '../upload'
 
 const router = Router()
 
@@ -96,31 +97,41 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-// スポット作成（要認証）
-router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    const { name, category, prefecture, description } = req.body
+// スポット作成（要認証・画像対応）
+router.post(
+  '/',
+  authenticate,
+  upload.single('image'),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { name, category, prefecture, description } = req.body
 
-    if (!name || !category || !prefecture || !description) {
-      res.status(400).json({ message: '全ての項目を入力してください' })
-      return
+      if (!name || !category || !prefecture || !description) {
+        res.status(400).json({ message: '全ての項目を入力してください' })
+        return
+      }
+
+      // 画像のパスを取得（画像がない場合はnull）
+      const image = req.file ? `/uploads/${req.file.filename}` : null
+
+      const spot = await prisma.spot.create({
+        data: {
+          name,
+          category,
+          prefecture,
+          description,
+          image,
+          userId: req.user!.userId,
+        },
+      })
+
+      res.status(201).json({ message: 'スポットを作成しました', spot })
+    } catch (error) {
+      res.status(500).json({ message: 'サーバーエラーが発生しました' })
     }
-
-    const spot = await prisma.spot.create({
-      data: {
-        name,
-        category,
-        prefecture,
-        description,
-        userId: req.user!.userId,
-      },
-    })
-
-    res.status(201).json({ message: 'スポットを作成しました', spot })
-  } catch (error) {
-    res.status(500).json({ message: 'サーバーエラーが発生しました' })
   }
-})
+)
+
 
 // スポット更新（要認証・本人のみ）
 router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
